@@ -1,0 +1,44 @@
+## .NET Core / ASP.NET Core Specific
+bin/
+obj/
+out/
+
+## Visual Studio Specific
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+*.suo
+
+## Build and Publish
+publish/
+*.exe
+*.dll
+*.pdb
+*.nupkg
+
+## Databases & Migrations (Agar local DB use kar rahe hon)
+*.db
+*.sqlite
+*.mdf
+*.ldf
+
+## Environment & Secrets (BOHOT ZAROORI)
+.env
+appsettings.Development.json
+# Agar aap production secrets hide karna chahte hain:
+# appsettings.json 
+
+## Entity Framework Core
+# Migrations ko ignore NA karein, lekin log files ko karein
+*.log
+
+## OS Specific
+.DS_Store
+Thumbs.db
+
+## Tools & Packages
+.packages/
+project.lock.json
+project.fragment.lock.json
