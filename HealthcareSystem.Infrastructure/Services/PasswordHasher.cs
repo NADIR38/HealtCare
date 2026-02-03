@@ -1,4 +1,5 @@
-﻿using HealthcareSystem.Application.Interfaces;
+﻿using HealthcareSystem.Application.Services;
+using HealthcareSystem.Application.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +27,7 @@ namespace HealthcareSystem.Application.Services
 
         public bool VerifyPassword(string password, string HashedPassword)
         {
-            var result=_passwordHasher.VerifyHashedPassword(null!,password, HashedPassword);
+            var result=_passwordHasher.VerifyHashedPassword(null!,HashedPassword, password);
             return result == PasswordVerificationResult.Success || result == PasswordVerificationResult.SuccessRehashNeeded;
         }
     }
