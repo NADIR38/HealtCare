@@ -15,6 +15,7 @@ namespace HealthcareSystem.Domain.Entities
         public Guid? AssignedBy { get; set; }
         public User? User { get; set; }
 
+
     }
     public enum Role
     {

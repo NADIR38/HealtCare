@@ -1,6 +1,7 @@
 ﻿using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Domain.Entities;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
@@ -9,46 +10,93 @@ using System.Linq;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace HealthcareSystem.Application.Services
 {
     public class TokenService : ITokenService
     {
-        private readonly IConfiguration _configurations;
-        public TokenService(IConfiguration configuration)
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<TokenService> _logger;
+        private readonly string _secretKey;
+        private readonly string _issuer;
+        private readonly string _audience;
+        private readonly double _expiryInHours;
+
+        public TokenService(IConfiguration configuration, ILogger<TokenService> logger)
         {
-            _configurations = configuration;
+            _configuration = configuration;
+            _logger = logger;
+
+            // Load and validate configuration at startup
+            _secretKey = _configuration["JwtSettings:SecretKey"]
+                ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+
+            _issuer = _configuration["JwtSettings:Issuer"]
+                ?? throw new InvalidOperationException("JWT Issuer is not configured");
+
+            _audience = _configuration["JwtSettings:Audience"]
+                ?? throw new InvalidOperationException("JWT Audience is not configured");
+
+            if (!double.TryParse(_configuration["JwtSettings:ExpiryInHours"], out _expiryInHours))
+            {
+                _expiryInHours = 1; // Default to 1 hour
+                _logger.LogWarning("JWT ExpiryInHours not configured, defaulting to 1 hour");
+            }
+
+            // Validate secret key length (should be at least 256 bits / 32 characters for HS256)
+            if (_secretKey.Length < 32)
+            {
+                throw new InvalidOperationException(
+                    "JWT SecretKey must be at least 32 characters long for security");
+            }
         }
+
         public string GenerateAccessToken(User user, string role)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configurations["JwtSettings:SecretKey"]!));
+            if (user == null)
+                throw new ArgumentNullException(nameof(user));
+
+            if (string.IsNullOrEmpty(role))
+                throw new ArgumentNullException(nameof(role));
+
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_secretKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-            var claims = new[] {
-            new Claim(JwtRegisteredClaimNames.Sub,user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Email,user.Email),
-            new Claim(ClaimTypes.Name,user.FirstName),
-            new Claim(ClaimTypes.Role,role),
-            new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString())
+
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // IMPORTANT: Add this!
+                new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat,
+                    DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
+                    ClaimValueTypes.Integer64)
             };
+
             var token = new JwtSecurityToken(
-                issuer: _configurations["JwtSettings:Issuer"],
-                audience: _configurations["JwtSettings:Audience"],
+                issuer: _issuer,
+                audience: _audience,
                 claims: claims,
-                expires:DateTime.UtcNow.AddHours(
-                    double.Parse(_configurations["JwtSettings:ExpiryInHours"]!)
-                    ),
+                notBefore: DateTime.UtcNow,
+                expires: DateTime.UtcNow.AddHours(_expiryInHours),
                 signingCredentials: credentials
-               
+            );
 
-                );
-            return new JwtSecurityTokenHandler().WriteToken(token);
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
+            _logger.LogInformation("Access token generated for user {UserId} with role {Role}",
+                user.Id, role);
+
+            return tokenString;
         }
 
         public string GenerateRefreshToken()
         {
-            var randomNumber = new byte[32];
+            var randomNumber = new byte[64]; // Increased from 32 to 64 for better security
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
@@ -56,41 +104,106 @@ namespace HealthcareSystem.Application.Services
 
         public Guid? ValidateToken(string token)
         {
-            //tokenhandler
-            //key configurations
-            //tokenhandler.validatetoken
-            //jwttoken.validated token
-            //userid
-            //return userid 
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                _logger.LogWarning("Attempted to validate null or empty token");
+                return null;
+            }
 
-            var tokenHandler=new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_configurations["JwtSettings:SecurityKey"]!);
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_secretKey); // FIX: Use _secretKey, not SecurityKey
 
             try
             {
                 tokenHandler.ValidateToken(token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    ValidateAudience = true,
-                    ValidAudience= _configurations["JwtSettings:Audience"],
-                    ValidateIssuer = true,
-                    ValidIssuer = _configurations["JwtSettings:Issuer"],
                     IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateLifetime=true,
-                    ClockSkew=TimeSpan.Zero,
 
-                },
-                out SecurityToken validatedToken
+                    ValidateIssuer = true,
+                    ValidIssuer = _issuer,
 
+                    ValidateAudience = true,
+                    ValidAudience = _audience,
 
-                    );
-                var securityToken = (JwtSecurityToken)validatedToken;
-                var userId = Guid.Parse(securityToken.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value);
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero, // No tolerance for expired tokens
+
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true
+                }, out SecurityToken validatedToken);
+
+                var jwtToken = (JwtSecurityToken)validatedToken;
+
+                // Try multiple claim types for userId
+                var userIdClaim = jwtToken.Claims.FirstOrDefault(x =>
+                    x.Type == JwtRegisteredClaimNames.Sub ||
+                    x.Type == ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrEmpty(userIdClaim))
+                {
+                    _logger.LogWarning("Token validated but no user ID claim found");
+                    return null;
+                }
+
+                if (!Guid.TryParse(userIdClaim, out var userId))
+                {
+                    _logger.LogWarning("Token validated but user ID claim is not a valid GUID: {UserIdClaim}",
+                        userIdClaim);
+                    return null;
+                }
+
                 return userId;
             }
-            catch {
+            catch (SecurityTokenExpiredException)
+            {
+                _logger.LogInformation("Token validation failed: Token has expired");
                 return null;
-            
+            }
+            catch (SecurityTokenInvalidSignatureException)
+            {
+                _logger.LogWarning("Token validation failed: Invalid signature");
+                return null;
+            }
+            catch (SecurityTokenException ex)
+            {
+                _logger.LogWarning(ex, "Token validation failed: {Message}", ex.Message);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during token validation");
+                return null;
+            }
+        }
+
+        public ClaimsPrincipal? GetPrincipalFromToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token))
+                return null;
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.UTF8.GetBytes(_secretKey);
+
+            try
+            {
+                var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = _issuer,
+                    ValidateAudience = true,
+                    ValidAudience = _audience,
+                    ValidateLifetime = false, // Don't validate expiry (for refresh token scenario)
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                return principal;
+            }
+            catch
+            {
+                return null;
             }
         }
     }

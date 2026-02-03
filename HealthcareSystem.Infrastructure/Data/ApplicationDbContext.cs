@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using System;
+using System.Diagnostics;
 
 namespace HealthcareSystem.Infrastructure.Data
 {
@@ -18,6 +19,14 @@ namespace HealthcareSystem.Infrastructure.Data
         public DbSet<RefreshToken> RefreshTokens {  get; set; }
         public DbSet<Patient> Patients { get; set; }
         public DbSet<MedicalHistory> MedicalHistory { get; set; }
+        public DbSet<Doctor> Doctor { get;set; }    
+        public DbSet<DoctorLeave> DoctorLeave{get;set ;}    
+        public DbSet<Appointment> Appointments { get; set; }
+        public DbSet<Document> Documents { get; set; }
+        public DbSet<DoctorSchedule> DoctorSchedule {  get; set; }
+        public DbSet<MedicalRecord> MedicalRecord { get; set; } 
+
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -156,6 +165,189 @@ namespace HealthcareSystem.Infrastructure.Data
                     .WithOne(p => p.MedicalHistory)
                     .HasForeignKey<MedicalHistory>(e => e.PatientId)
                     .OnDelete(DeleteBehavior.Cascade);
+            });
+            // Doctor configuration
+            modelBuilder.Entity<Doctor>(entity =>
+            {
+                entity.ToTable("Doctors");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.DoctorNumber)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(e => e.DoctorNumber).IsUnique();
+                entity.HasIndex(e => e.UserId).IsUnique();
+                entity.HasIndex(e => e.LicenseNumber).IsUnique();
+
+                entity.Property(e => e.Specialization)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.LicenseNumber)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(e => e.ConsultationFee)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasOne(e => e.User)
+                    .WithOne(u => u.Doctor)
+                    .HasForeignKey<Doctor>(e => e.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // DoctorSchedule configuration
+            modelBuilder.Entity<DoctorSchedule>(entity =>
+            {
+                entity.ToTable("DoctorSchedule");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.DayOfWeek)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany(d => d.Schedules)
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.DoctorId, e.DayOfWeek, e.IsActive });
+            });
+
+            // DoctorLeave configuration
+            modelBuilder.Entity<DoctorLeave>(entity =>
+            {
+                entity.ToTable("DoctorLeaves");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany(d => d.Leaves)
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.ApprovedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.ApprovedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => new { e.DoctorId, e.StartDate, e.EndDate });
+            });
+
+            // Appointment configuration
+            modelBuilder.Entity<Appointment>(entity =>
+            {
+                entity.ToTable("Appointments");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.AppointmentNumber)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(e => e.AppointmentNumber).IsUnique();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.Type)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany(p => p.Appointments)
+                    .HasForeignKey(e => e.PatientId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany(d => d.Appointments)
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.DoctorId, e.AppointmentDate, e.StartTime });
+                entity.HasIndex(e => new { e.PatientId, e.AppointmentDate });
+                entity.HasIndex(e => e.Status);
+            });
+
+            // MedicalRecord configuration (basic for now)
+            modelBuilder.Entity<MedicalRecord>(entity =>
+            {
+                entity.ToTable("MedicalRecords");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany(p => p.MedicalRecords)
+                    .HasForeignKey(e => e.PatientId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Doctor)
+                    .WithMany(d => d.MedicalRecords)
+                    .HasForeignKey(e => e.DoctorId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Appointment)
+                    .WithMany()
+                    .HasForeignKey(e => e.AppointmentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasIndex(e => new { e.PatientId, e.VisitDate });
+            });
+
+            // Document configuration (basic for now)
+            modelBuilder.Entity<Document>(entity =>
+            {
+                entity.ToTable("Documents");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.DocumentType)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.UploadedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany(p => p.Documents)
+                    .HasForeignKey(e => e.PatientId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.UploadedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.UploadedBy)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => new { e.PatientId, e.DocumentType });
             });
         }
     }

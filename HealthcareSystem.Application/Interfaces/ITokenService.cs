@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,5 +13,7 @@ namespace HealthcareSystem.Application.Interfaces
         string GenerateAccessToken(User user, string role);
         string GenerateRefreshToken();
         Guid? ValidateToken(string token);
+        ClaimsPrincipal? GetPrincipalFromToken(string token); // New method
+
     }
 }

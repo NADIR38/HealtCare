@@ -25,6 +25,7 @@ namespace HealthcareSystem.Domain.Entities
         public Gender Gender { get; set; }
          public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public Patient? Patient { get; set; }
+        public Doctor Doctor { get; set; } = null!;
 
 
     }

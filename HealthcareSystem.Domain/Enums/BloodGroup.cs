@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace HealthcareSystem.Domain.Enums
 {
-    public enum BloodGroup
-    {
+    public enum BloodGroup    {
         APositive,
         ANegative,
         BPositive,
@@ -28,5 +27,34 @@ namespace HealthcareSystem.Domain.Enums
         None,
         Occasional,
         Regular
+    }
+    public enum LeaveStatus { 
+    Pending,
+    Approved,
+    Rejected
+    }
+    public enum AppointmentStatus
+    {
+        Scheduled,
+        CheckedIn,
+        InProgress,
+        Completed,
+        Cancelled,
+        NoShow,
+    }
+    public enum AppointmentType
+    {
+        InPerson,
+            Telemedicine
+    }
+    public enum DocumentType
+    {
+        LabReport,
+        Prescription,
+        XRay,
+        MRI,
+        CT_Scan,
+        Insurance,
+        Other
     }
 }

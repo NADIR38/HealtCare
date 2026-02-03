@@ -14,7 +14,7 @@ namespace HealthcareSystem.Domain.Entities
         public Guid Id { get; set; }
         public Guid UserId { get; set; }
         public string PatientNumber { get; set; } = string.Empty;
-        public BloodGroup? BloodGroup { get; set; }
+        public Enums.BloodGroup? BloodGroup { get; set; }
         public decimal? Height { get; set; } // in cm
         public decimal? Weight { get; set; } // in kg
         public string? EmergencyContactName { get; set; }
@@ -30,8 +30,8 @@ namespace HealthcareSystem.Domain.Entities
         public DateTime UpdatedAt { get; set; }
         public User User { get; set; } = null!;
         public MedicalHistory? MedicalHistory { get; set; }
-        //public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
-        //public ICollection<MedicalRecord> MedicalRecords { get; set; } = new List<MedicalRecord>();
+        public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+        public ICollection<MedicalRecord> MedicalRecords { get; set; } = new List<MedicalRecord>();
         [NotMapped]
         public ICollection<Document> Documents { get; set; } = new List<Document>();
 
