@@ -4,6 +4,7 @@ using HealthcareSystem.API.Middleware;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Application.Services;
 using HealthcareSystem.Infrastructure.Data;
+using HealthcareSystem.Infrastructure.Helpers;
 using HealthcareSystem.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -89,6 +90,8 @@ builder.Services.AddScoped<IPatientService, PatientService>();
 builder.Services.AddScoped<IDoctorService, DoctorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthorizationHandler, DoctorOwnerHandler>();
+builder.Services.AddScoped<DatabaseHelpers>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 
 
 // --- 8. JWT AUTHENTICATION ---
