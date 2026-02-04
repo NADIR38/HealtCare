@@ -122,8 +122,9 @@ namespace HealthcareSystem.Infrastructure.Services
             PhysicalExamination=request.PhysicalExamination,
             TreatmentPlan=request.TreatmentPlan,
             Notes=request.Notes,
+            Symptoms=request.Symptoms,
             CreatedAt=DateTime.UtcNow,
-            UpdatedAt=DateTime.UtcNow,
+            UpdatedAt=DateTime.UtcNow
             
            
 
@@ -196,7 +197,6 @@ namespace HealthcareSystem.Infrastructure.Services
                     RecordedAt = medicalrecord.VitalSigns.RecordedAt
                 } : null,
 
-                // ✅ ADD PRESCRIPTIONS MAPPING
                 Prescriptions = medicalrecord.Prescriptions?.Select(p => new PrescriptionSummary
                 {
                     Id = p.Id,
@@ -205,7 +205,6 @@ namespace HealthcareSystem.Infrastructure.Services
                     ItemCount = p.Items?.Count ?? 0
                 }).ToList() ?? new List<PrescriptionSummary>(),
 
-                // ✅ ADD LAB TESTS MAPPING
                 LabTests = medicalrecord.LabTests?.Select(l => new LabTestSummary
                 {
                     Id = l.Id,
@@ -218,7 +217,6 @@ namespace HealthcareSystem.Infrastructure.Services
             return response;
         }
 
-        // Appointment Validation Method
         private async Task<Appointment> ValidateAppointment(Guid appointmentId, Guid doctorId, Guid patientId)
         {
             var appointment = await _context.Appointments
@@ -248,7 +246,7 @@ namespace HealthcareSystem.Infrastructure.Services
                 throw new NotFoundException("Medical record", medicalRecordId);
             }
 
-            if (medicalRecord.Prescriptions?.Any() == true || medicalRecord.LabTests?.Any() == true)  // ✅ FIXED
+            if (medicalRecord.Prescriptions?.Any() == true || medicalRecord.LabTests?.Any() == true)  
             {
                 throw new BusinessException("Cannot delete medical record with associated prescriptions or lab tests");
             }
@@ -306,11 +304,11 @@ namespace HealthcareSystem.Infrastructure.Services
 
             var medicalRecords = await _context.MedicalRecord
                 .Include(m => m.Doctor)
-                    .ThenInclude(d => d.User)  // ✅ ADD THIS
+                    .ThenInclude(d => d.User)  
                 .Include(m => m.Patient)
-                    .ThenInclude(p => p.User)  // ✅ ADD THIS
-                .Include(m => m.VitalSigns)    // ✅ ADD THIS
-                .Include(m => m.Appointment)   // ✅ ADD THIS
+                    .ThenInclude(p => p.User)  
+                .Include(m => m.VitalSigns)    
+                .Include(m => m.Appointment)   
                 .Include(m => m.Prescriptions)
                 .Include(m => m.LabTests)
                 .Where(m => m.PatientId == patientId)
@@ -328,13 +326,13 @@ namespace HealthcareSystem.Infrastructure.Services
         {
             var medicalRecord = await _context.MedicalRecord
                 .Include(m => m.Doctor)
-                    .ThenInclude(d => d.User)  // ✅ ADD THIS
+                    .ThenInclude(d => d.User)  
                 .Include(m => m.Patient)
-                    .ThenInclude(p => p.User)  // ✅ ADD THIS
-                .Include(m => m.VitalSigns)    // ✅ ADD THIS (for complete response)
-                .Include(m => m.Appointment)   // ✅ ADD THIS (for complete response)
-                .Include(m => m.Prescriptions) // ✅ ADD THIS (for complete response)
-                .Include(m => m.LabTests)      // ✅ ADD THIS (for complete response)
+                    .ThenInclude(p => p.User)  
+                .Include(m => m.VitalSigns)    
+                .Include(m => m.Appointment)   
+                .Include(m => m.Prescriptions)
+                .Include(m => m.LabTests)      
                 .FirstOrDefaultAsync(m => m.Id == medicalRecordId);
 
             if (medicalRecord == null)
