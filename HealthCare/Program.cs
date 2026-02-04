@@ -92,7 +92,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IAuthorizationHandler, DoctorOwnerHandler>();
 builder.Services.AddScoped<DatabaseHelpers>();
 builder.Services.AddScoped<IAppointmentService, AppointmentService>();
-
+builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
+builder.Services.AddScoped<IPrescriptionService,PrescriptionService>();
 
 // --- 8. JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

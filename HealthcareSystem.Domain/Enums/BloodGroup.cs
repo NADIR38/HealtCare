@@ -33,6 +33,14 @@ namespace HealthcareSystem.Domain.Enums
     Approved,
     Rejected
     }
+    public enum LabTestStatus
+    {
+        Ordered,
+        SampleCollected,
+        InProgress,
+        Completed,
+        Cancelled
+    }
     public enum AppointmentStatus
     {
         Scheduled,
