@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HealthcareSystem.Domain.Enums;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,12 +18,5 @@ namespace HealthcareSystem.Domain.Entities
 
 
     }
-    public enum Role
-    {
-        Admin,
-        Doctor,
-        Nurse,
-        Receptionist,
-        Patient
-    }
+    
 }

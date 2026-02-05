@@ -67,7 +67,46 @@ namespace HealthcareSystem.Infrastructure.Services
                 throw;
             }
         }
+        public async Task SendEmailWithAttachmentAsync(EmailMessage message, byte[] attachment, string fileName)
+        {
+            try
+            {
+                var emailMessage = new MimeMessage();
+                emailMessage.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.SenderEmail));
+                emailMessage.To.AddRange(message.To.Select(email => new MailboxAddress("", email)));
+                emailMessage.Subject = message.Subject;
 
+                var bodyBuilder = new BodyBuilder();
+                if (message.IsHtml)
+                {
+                    bodyBuilder.HtmlBody = message.Body;
+                }
+                else
+                {
+                    bodyBuilder.TextBody = message.Body;
+                }
+
+                // Add attachment
+                bodyBuilder.Attachments.Add(fileName, attachment, new ContentType("application", "pdf"));
+
+                emailMessage.Body = bodyBuilder.ToMessageBody();
+
+                using var client = new SmtpClient();
+                await client.ConnectAsync(_emailSettings.SmtpServer, _emailSettings.SmtpPort,
+                    _emailSettings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None);
+
+                await client.AuthenticateAsync(_emailSettings.Username, _emailSettings.Password);
+                await client.SendAsync(emailMessage);
+                await client.DisconnectAsync(true);
+
+                _logger.LogInformation($"Email with attachment sent successfully to {string.Join(", ", message.To)}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error sending email with attachment: {ex.Message}");
+                throw;
+            }
+        }
         public async Task SendLeaveApprovedEmailAsync(string doctorEmail, string doctorName, string startDate, string endDate)
         {
             var subject = "Leave Request Approved ✅";

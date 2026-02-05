@@ -15,5 +15,6 @@ namespace HealthcareSystem.Application.Interfaces
         Task SendAppointmentConfirmationAsync(string patientEmail, string patientName, string doctorName, string appointmentDate, string appointmentTime);
         Task SendAppointmentReminderAsync(string patientEmail, string patientName, string doctorName, string appointmentDate, string appointmentTime);
         Task SendAppointmentCancellationAsync(string email, string name, string doctorName, string appointmentDate, string reason);
+        Task SendEmailWithAttachmentAsync(EmailMessage message, byte[] attachment, string fileName);
     }
 }

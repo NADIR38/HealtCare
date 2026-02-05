@@ -18,7 +18,37 @@ namespace HealthcareSystem.Infrastructure.Helpers
         {
             _context = context;
         }
+        public  async Task<Appointment> ValidateAppointment(Guid appointmentId, Guid patientId)
+        {
+            var appointment = await _context.Appointments
+                .Include(a => a.Doctor)
+                .Include(a => a.Patient)
+                .FirstOrDefaultAsync(a => a.Id == appointmentId &&
+                                         a.PatientId == patientId 
+                                         );
 
+            if (appointment == null)
+            {
+                throw new NotFoundException("Valid appointment not found for the specified patient and doctor.", appointmentId);
+            }
+
+            return appointment;
+        }
+        public async Task<Appointment> CheckAppointmentExist(Guid appointmentId)
+        {
+            var appointment = await _context.Appointments
+               .Include(a => a.Doctor).ThenInclude(u => u.User)
+               .Include(a => a.Patient).ThenInclude(u=>u.User)
+               .FirstOrDefaultAsync(a => a.Id == appointmentId
+                                        
+                                        );
+            if (appointment == null)
+            {
+                throw new NotFoundException("Valid appointment not found for the specified patient and doctor.", appointmentId);
+            }
+
+            return appointment;
+        }
         public async Task<T> CheckEntityExists<T>(Guid Id) where T : class
         {
             var entity = await _context.Set<T>().FindAsync(Id);
@@ -96,6 +126,17 @@ namespace HealthcareSystem.Infrastructure.Helpers
                 throw new NotFoundException("Medical record", medicalRecordId);
             }
             return medicalRecord;
+        }
+
+        public async Task<Invoice> CheckIvoiceExist(Guid invoiceId)
+        {
+           var invoice = await _context.Invoices.FindAsync(invoiceId);
+            if (invoice == null)
+            {
+                throw new NotFoundException("No invoice against this id", invoiceId);
+            }
+            return invoice;
+
         }
     }
 }

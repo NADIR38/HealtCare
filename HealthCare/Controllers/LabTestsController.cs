@@ -2,6 +2,7 @@
 using HealthcareSystem.Application.DTOs.LabTest;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Domain.Enums;
+using HealthcareSystem.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -135,13 +136,12 @@ namespace HealthcareSystem.API.Controllers
                 return BadRequest(new { message = "No file uploaded" });
             }
 
-            // Validate file size (max 10MB)
             if (file.Length > 10 * 1024 * 1024)
             {
                 return BadRequest(new { message = "File size must not exceed 10MB" });
             }
 
-            // Validate file type (PDF, PNG, JPG, JPEG)
+            
             var allowedExtensions = new[] { ".pdf", ".png", ".jpg", ".jpeg" };
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
@@ -153,7 +153,7 @@ namespace HealthcareSystem.API.Controllers
             _logger.LogInformation("Uploading result file for lab test {LabTestId}: {FileName}",
                 id, file.FileName);
 
-            // Read file content
+           
             byte[] fileContent;
             using (var memoryStream = new MemoryStream())
             {
@@ -244,8 +244,30 @@ namespace HealthcareSystem.API.Controllers
 
             return Ok(statistics);
         }
+       
+        [HttpGet("{id}/report-pdf")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadLabTestReportPdf(Guid id, [FromServices] IPdfService pdfService)
+        {
+            try
+            {
+                _logger.LogInformation("Generating lab test report PDF for test {LabTestId}", id);
 
-        // Helper method to get content type based on file extension
+                var pdfBytes = await pdfService.GenerateLabTestReportPdfAsync(id);
+
+                return File(pdfBytes, "application/pdf", $"lab-test-report-{id}.pdf");
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating lab test report PDF");
+                return StatusCode(500, new { message = "Error generating PDF" });
+            }
+        }
         private string GetContentType(string fileName)
         {
             var extension = Path.GetExtension(fileName).ToLowerInvariant();

@@ -15,6 +15,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
+using Hangfire;
+using Hangfire.MySql;
+using HealthCare.Authorization;
+using HealthcareSystem.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,6 +62,28 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddHangfire(configuration => configuration
+    .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+    .UseSimpleAssemblyNameTypeSerializer()
+    .UseRecommendedSerializerSettings()
+    .UseStorage(new MySqlStorage(
+        builder.Configuration.GetConnectionString("HangFire"),
+        new MySqlStorageOptions
+        {
+            QueuePollInterval = TimeSpan.FromSeconds(15),
+            JobExpirationCheckInterval = TimeSpan.FromHours(1),
+            CountersAggregateInterval = TimeSpan.FromMinutes(5),
+            PrepareSchemaIfNecessary = true,
+            DashboardJobListLimit = 50000,
+            TransactionTimeout = TimeSpan.FromMinutes(1),
+            TablesPrefix = "Hangfire"
+        }
+    ))
+);
+
+
+
+
 // --- 4. DATABASE CONFIGURATION (MySQL) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -95,6 +121,10 @@ builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 builder.Services.AddScoped<IMedicalRecordService, MedicalRecordService>();
 builder.Services.AddScoped<IPrescriptionService,PrescriptionService>();
 builder.Services.AddScoped<ILabTestService, LabTestService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<IInvoiceService,InvoiceService>();
+builder.Services.AddScoped<IPaymentService, PaymentService>();  
+builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 
 // --- 8. JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -144,6 +174,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
 app.UseHttpsRedirection();
 app.UseStaticFiles(); 
 app.UseCors("AllowAll");
@@ -155,7 +186,13 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseHangfireDashboard("/Hangfire", new DashboardOptions
+{
+    Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
+    AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
+    DashboardTitle = "Healthcare System - Background Jobs"
+});
+HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
 app.MapControllers();
 
 app.Run();

@@ -1,4 +1,5 @@
 ﻿using HealthcareSystem.Domain.Entities;
+using HealthcareSystem.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Linq;

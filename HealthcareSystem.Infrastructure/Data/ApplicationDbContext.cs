@@ -29,6 +29,9 @@ namespace HealthcareSystem.Infrastructure.Data
         public DbSet<Prescription> Prescriptions { get; set; }
         public DbSet<PrescriptionItem> PrescriptionItems { get; set; }
         public DbSet<LabTest> LabTests { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<InvoiceItem> InvoiceItems { get; set; }
+        public DbSet<Payment> Payments { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -296,8 +299,122 @@ namespace HealthcareSystem.Infrastructure.Data
                 entity.HasIndex(e => new { e.PatientId, e.AppointmentDate });
                 entity.HasIndex(e => e.Status);
             });
+            // Invoice configuration
+            modelBuilder.Entity<Invoice>(entity =>
+            {
+                entity.ToTable("Invoices");
+                entity.HasKey(e => e.Id);
 
-        
+                entity.Property(e => e.InvoiceNumber)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.SubTotal)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.TaxAmount)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.DiscountAmount)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.TotalAmount)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.Property(e => e.UpdatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                    .ValueGeneratedOnAddOrUpdate();
+
+                entity.HasOne(e => e.Patient)
+                    .WithMany()
+                    .HasForeignKey(e => e.PatientId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.Appointment)
+                    .WithMany()
+                    .HasForeignKey(e => e.AppointmentId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.PatientId, e.InvoiceDate });
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.DueDate);
+            });
+
+            // InvoiceItem configuration
+            modelBuilder.Entity<InvoiceItem>(entity =>
+            {
+                entity.ToTable("InvoiceItems");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.Description)
+                    .IsRequired()
+                    .HasMaxLength(500);
+
+                entity.Property(e => e.UnitPrice)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.Amount)
+                    .HasPrecision(10, 2);
+
+                entity.HasOne(e => e.Invoice)
+                    .WithMany(i => i.Items)
+                    .HasForeignKey(e => e.InvoiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasIndex(e => e.InvoiceId);
+            });
+
+            // Payment configuration
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.ToTable("Payments");
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.PaymentNumber)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.HasIndex(e => e.PaymentNumber).IsUnique();
+
+                entity.Property(e => e.Amount)
+                    .HasPrecision(10, 2);
+
+                entity.Property(e => e.PaymentMethod)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.Status)
+                    .HasConversion<string>();
+
+                entity.Property(e => e.CreatedAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
+                entity.HasOne(e => e.Invoice)
+                    .WithMany(i => i.Payments)
+                    .HasForeignKey(e => e.InvoiceId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(e => new { e.InvoiceId, e.PaymentDate });
+                entity.HasIndex(e => e.Status);
+            });
+
 
             // Document configuration (basic for now)
             modelBuilder.Entity<Document>(entity =>

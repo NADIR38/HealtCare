@@ -20,17 +20,20 @@ namespace HealthcareSystem.Infrastructure.Services
         private readonly ILogger<PrescriptionService> _logger;
         private readonly DatabaseHelpers _helper;
         private readonly IEmailService _emailService;
+        private readonly IPdfService _service;
 
         public PrescriptionService(
             ApplicationDbContext context,
             ILogger<PrescriptionService> logger,
             DatabaseHelpers helper,
-            IEmailService emailService)
+            IEmailService emailService,
+            IPdfService service)
         {
             _context = context;
             _logger = logger;
             _helper = helper;
             _emailService = emailService;
+            _service = service;
         }
 
         public async Task<PrescriptionResponse> CreatePrescriptionAsync(CreatePrescriptionRequest request)
@@ -94,16 +97,36 @@ namespace HealthcareSystem.Infrastructure.Services
 
             _logger.LogInformation("Prescription {PrescriptionNumber} created for Patient {PatientId} by Doctor {DoctorId}",
                 prescriptionNumber, patient.Id, doctor.Id);
-
-            // Send email to patient
             try
             {
-                await SendPrescriptionEmailAsync(prescription, patient, doctor);
+                var pdfBytes = await _service.GeneratePrescriptionPdfAsync(prescription.Id);
+
+                // Send email with PDF attachment
+                var emailMessage = new EmailMessage
+                {
+                    To = new List<string> { patient.User.Email },
+                    Subject = "Your Prescription - Healthcare System",
+                    Body = $@"
+        <h2>Prescription Issued</h2>
+        <p>Dear {patient.User.FirstName} {patient.User.LastName},</p>
+        <p>Your prescription has been issued by Dr. {doctor.User.FirstName} {doctor.User.LastName}.</p>
+        <p><strong>Prescription Number:</strong> {prescriptionNumber}</p>
+        <p>Please find your prescription attached as a PDF.</p>
+        <p>Best regards,<br/>Healthcare System</p>
+    ",
+                    IsHtml = true
+                };
+
+                await _emailService.SendEmailWithAttachmentAsync(
+                    emailMessage,
+                    pdfBytes,
+                    $"prescription-{prescriptionNumber}.pdf"
+                );
             }
-            catch (Exception ex)
+           catch(Exception e)
             {
-                _logger.LogError(ex, "Failed to send prescription email for {PrescriptionNumber}", prescriptionNumber);
-                // Don't fail the entire operation if email fails
+                _logger.LogError(e, "Failed to send prescription email for {PrescriptionNumber}. Prescription was created successfully.", prescriptionNumber);
+
             }
 
             // Reload with all data for response
@@ -211,10 +234,10 @@ namespace HealthcareSystem.Infrastructure.Services
             return prescriptions.Select(MapToPrescriptionResponse).ToList();
         }
 
-        public Task<byte[]> GeneratePrescriptionPdfAsync(Guid prescriptionId)
+        public async Task<byte[]> GeneratePrescriptionPdfAsync(Guid prescriptionId)
         {
-            // Will implement on Day 7 with PDF library
-            throw new NotImplementedException("PDF generation will be implemented on Day 7");
+
+           return await _service.GeneratePrescriptionPdfAsync(prescriptionId);
         }
 
         // Private helper methods

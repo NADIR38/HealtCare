@@ -16,6 +16,14 @@ namespace HealthcareSystem.Domain.Enums
         ABPositive,
         ABNegative
     }
+    public enum Role
+    {
+        Admin,
+        Doctor,
+        Nurse,
+        Receptionist,
+        Patient
+    }
     public enum SmokingStatus
     {
         Never,
@@ -39,6 +47,31 @@ namespace HealthcareSystem.Domain.Enums
         SampleCollected,
         InProgress,
         Completed,
+        Cancelled
+    }
+    public enum PaymentStatus
+    {
+        Pending,
+        Completed,
+        Failed,
+        Refunded
+    }
+    public enum PaymentMethod
+    {
+        Cash,
+        Card,
+        Insurance,
+        BankTransfer,
+        OnlinePayment,
+        Cheque
+    }
+    public enum InvoiceStatus
+    {
+        Draft,
+        Pending,
+        Paid,
+        PartiallyPaid,
+        Overdue,
         Cancelled
     }
     public enum AppointmentStatus

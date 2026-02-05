@@ -2,6 +2,7 @@
 using HealthcareSystem.Application.Dto.MedicalRecords;
 using HealthcareSystem.Application.DTOs.MedicalRecord;
 using HealthcareSystem.Application.Interfaces;
+using HealthcareSystem.Infrastructure.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -148,5 +149,31 @@ namespace HealthcareSystem.API.Controllers
 
             return NoContent();
         }
+        /// <summary>
+        /// Download medical report as PDF
+        /// </summary>
+        [HttpGet("{id}/pdf")]
+        [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DownloadMedicalReportPdf(Guid id, [FromServices] IPdfService pdfService)
+        {
+            try
+            {
+                _logger.LogInformation("Generating medical report PDF for record {RecordId}", id);
+
+                var pdfBytes = await pdfService.GenerateMedicalReportPdfAsync(id);
+
+                return File(pdfBytes, "application/pdf", $"medical-report-{id}.pdf");
+            }
+            catch (NotFoundException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating medical report PDF");
+                return StatusCode(500, new { message = "Error generating PDF" });
+            }
+        }
     }
-}
+    }

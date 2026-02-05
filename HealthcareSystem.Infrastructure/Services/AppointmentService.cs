@@ -1,4 +1,5 @@
-﻿using HealthcareSystem.Application.Dto.Appointments;
+﻿using Hangfire;
+using HealthcareSystem.Application.Dto.Appointments;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Domain.Entities;
 using HealthcareSystem.Domain.Enums;
@@ -186,7 +187,15 @@ namespace HealthcareSystem.Infrastructure.Services
                 {
                     _logger.LogError(ex, "Failed to send appointment confirmation email");
                 }
+                var reminderTime = appointment.AppointmentDate.Add(appointment.StartTime).AddHours(-24);
+                if (reminderTime > DateTime.UtcNow)
+                {
+                    BackgroundJob.Schedule<IBackgroundJobService>(
+                        service => service.SendAppointmentReminderAsync(appointment.Id),
+                        reminderTime);
 
+                    _logger.LogInformation("Appointment reminder scheduled for {ReminderTime}", reminderTime);
+                }
 
                 return await GetAppointmentByIdAsync(appointment.Id);
             }

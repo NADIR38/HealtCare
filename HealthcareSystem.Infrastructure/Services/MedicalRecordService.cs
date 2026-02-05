@@ -181,7 +181,6 @@ namespace HealthcareSystem.Infrastructure.Services
                 CreatedAt = medicalrecord.CreatedAt,
                 UpdatedAt = medicalrecord.UpdatedAt,
 
-                // ✅ ADD VITAL SIGNS MAPPING
                 VitalSigns = medicalrecord.VitalSigns != null ? new VitalSignsResponse
                 {
                     Id = medicalrecord.VitalSigns.Id,
