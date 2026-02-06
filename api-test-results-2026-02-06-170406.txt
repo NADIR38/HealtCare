@@ -1,0 +1,123 @@
+﻿Healthcare System API Test Report
+Generated: 2026-02-06 17:04:07
+Base URL: https://localhost:7227
+
+SUMMARY
+=======
+Total Tests: 22
+Passed: 0
+Failed: 22
+Pass Rate: 0%
+
+DETAILED RESULTS
+===============
+
+FAILED: Health Check
+Endpoint: GET /health
+Status Code: 404
+Error: Status code mismatch
+
+FAILED: Admin Login
+Endpoint: POST /api/auth/login
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Doctor Login
+Endpoint: POST /api/auth/login
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Patient Login
+Endpoint: POST /api/auth/login
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get All Patients
+Endpoint: GET /api/patients?page=1&pageSize=10
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Patient Dashboard
+Endpoint: GET /api/dashboard/patient/PATIENT_ID_HERE
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get All Doctors
+Endpoint: GET /api/doctors?page=1&pageSize=10
+Status Code: 404
+Error: Status code mismatch
+
+FAILED: Get Available Doctors
+Endpoint: GET /api/doctors/available
+Status Code: 404
+Error: Status code mismatch
+
+FAILED: Get All Appointments
+Endpoint: GET /api/appointments?page=1&pageSize=10
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Today's Appointments
+Endpoint: GET /api/appointments/today
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Appointment Statistics
+Endpoint: GET /api/appointments/statistics
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Medical Records (should fail - no patient ID)
+Endpoint: GET /api/medicalrecords/patient/00000000-0000-0000-0000-000000000000
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Prescriptions (should fail - no patient ID)
+Endpoint: GET /api/prescriptions/patient/00000000-0000-0000-0000-000000000000
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Lab Tests (should fail - no patient ID)
+Endpoint: GET /api/labtests/patient/00000000-0000-0000-0000-000000000000
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get All Invoices
+Endpoint: GET /api/invoices?page=1&pageSize=10
+Status Code: 404
+Error: Status code mismatch
+
+FAILED: Get All Payments
+Endpoint: GET /api/payments?page=1&pageSize=10
+Status Code: 404
+Error: Status code mismatch
+
+FAILED: Get My Notifications
+Endpoint: GET /api/notifications/my-notifications
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Unread Count
+Endpoint: GET /api/notifications/unread-count
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Admin Dashboard
+Endpoint: GET /api/dashboard/admin
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Get Job Statistics
+Endpoint: GET /api/backgroundjobs/statistics
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Patient accessing admin dashboard (should fail)
+Endpoint: GET /api/dashboard/admin
+Status Code: 401
+Error: Status code mismatch
+
+FAILED: Unauthenticated access (should fail)
+Endpoint: GET /api/doctors
+Status Code: 404
+Error: Status code mismatch

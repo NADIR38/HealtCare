@@ -19,12 +19,18 @@ using Hangfire;
 using Hangfire.MySql;
 using HealthCare.Authorization;
 using HealthcareSystem.API.Extensions;
+using HealthcareSystem.Application.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // --- 1. CORE SERVICES ---
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
+// Program.cs
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // Yeh line string enums ko C# enums mein convert karegi
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    }); builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMemoryCache(); 
 builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddResponseCaching();
@@ -125,7 +131,8 @@ builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<IInvoiceService,InvoiceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();  
 builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 // --- 8. JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);
@@ -162,6 +169,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", policy =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
+builder.Services.AddSignalR();
 
 var app = builder.Build();
 
@@ -194,5 +202,5 @@ app.UseHangfireDashboard("/Hangfire", new DashboardOptions
 });
 HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
 app.MapControllers();
-
+app.MapHub<NotificationHub>("/notificationHub");
 app.Run();

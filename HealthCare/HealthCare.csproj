@@ -1,9 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
-		<Nullable>enable</Nullable>
-		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+	<ItemGroup>
+	  <Compile Remove="HealthcareSystem.Infrastructure\**" />
+	  <Content Remove="HealthcareSystem.Infrastructure\**" />
+	  <EmbeddedResource Remove="HealthcareSystem.Infrastructure\**" />
+	  <None Remove="HealthcareSystem.Infrastructure\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
