@@ -1,13 +1,20 @@
 using AspNetCoreRateLimit;
+using Hangfire;
+using Hangfire.MySql;
+using HealthCare.Authorization;
 using HealthcareSystem.API.Authorization;
+using HealthcareSystem.API.Extensions;
 using HealthcareSystem.API.Middleware;
+using HealthcareSystem.Application.Hubs;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Application.Services;
+using HealthcareSystem.Domain.Entities;
 using HealthcareSystem.Infrastructure.Data;
 using HealthcareSystem.Infrastructure.Helpers;
 using HealthcareSystem.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -15,11 +22,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using StackExchange.Redis;
 using System.Text;
-using Hangfire;
-using Hangfire.MySql;
-using HealthCare.Authorization;
-using HealthcareSystem.API.Extensions;
-using HealthcareSystem.Application.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,7 +32,8 @@ builder.Services.AddControllers()
     {
         // Yeh line string enums ko C# enums mein convert karegi
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    }); builder.Services.AddEndpointsApiExplorer();
+    });
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddMemoryCache(); 
 builder.Services.AddHttpContextAccessor(); 
 builder.Services.AddResponseCaching();
@@ -115,7 +118,7 @@ builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
 // --- 7. DEPENDENCY INJECTION (DI) ---
-builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
+builder.Services.AddScoped<IPasswordHasher, PasswordHasher>(); 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPatientService, PatientService>();
@@ -133,6 +136,7 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IBackgroundJobService, BackgroundJobService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+builder.Services.AddScoped<IUserService, UserService>();
 // --- 8. JWT AUTHENTICATION ---
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]!);

@@ -16,7 +16,7 @@ namespace HealthcareSystem.API.Controllers
     /// Manages doctor profiles, schedules, and leave requests
     /// </summary>
     [ApiController]
-    [Route("api/v{version:apiVersion}/[controller]")]
+    [Route("api/[controller]")]
     [ApiVersion("1.0")]
     [Authorize]
     public class DoctorsController : ControllerBase
