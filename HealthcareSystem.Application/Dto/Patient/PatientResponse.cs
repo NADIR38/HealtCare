@@ -19,7 +19,7 @@ namespace HealthcareSystem.Application.Dto.Patient
         public string? PhoneNumber { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public Gender Gender { get; set; }
-        public BloodGroup? BloodGroup { get; set; }
+        public string? BloodGroup { get; set; }
         public decimal? Height { get; set; }
         public decimal? Weight { get; set; }
         public string? EmergencyContactName { get; set; }
@@ -32,5 +32,7 @@ namespace HealthcareSystem.Application.Dto.Patient
         public string? InsuranceProvider { get; set; }
         public string? InsurancePolicyNumber { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? Allergies {  get; set; }
+        public string? ChronicConditions { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using HealthcareSystem.Application.Dto.Patient;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Domain.Entities;
+using HealthcareSystem.Domain.Enums;
 using HealthcareSystem.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -207,19 +208,91 @@ namespace HealthcareSystem.Infrastructure.Services
                 throw new Exception("Patient not found");
             }
 
-            patient.BloodGroup = request.BloodGroup ?? patient.BloodGroup;
-            patient.Height = request.Height ?? patient.Height;
-            patient.Weight = request.Weight ?? patient.Weight;
-            patient.EmergencyContactName = request.EmergencyContactName ?? patient.EmergencyContactName;
-            patient.EmergencyContactPhone = request.EmergencyContactPhone ?? patient.EmergencyContactPhone;
-            patient.EmergencyContactRelation = request.EmergencyContactRelation ?? patient.EmergencyContactRelation;
-            patient.Address = request.Address ?? patient.Address;
-            patient.City = request.City ?? patient.City;
-            patient.State = request.State ?? patient.State;
-            patient.ZipCode = request.ZipCode ?? patient.ZipCode;
-            patient.InsuranceProvider = request.InsuranceProvider ?? patient.InsuranceProvider;
-            patient.InsurancePolicyNumber = request.InsurancePolicyNumber ?? patient.InsurancePolicyNumber;
+            // Update BloodGroup (convert string to enum)
+            if (!string.IsNullOrEmpty(request.BloodGroup))
+            {
+                if (Enum.TryParse<BloodGroup>(request.BloodGroup.Replace("+", "Plus").Replace("-", "Minus"), out var bloodGroupEnum))
+                {
+                    patient.BloodGroup = bloodGroupEnum;
+                }
+            }
+
+            // Update other fields only if they're provided
+            if (request.Height.HasValue)
+                patient.Height = request.Height.Value;
+
+            if (request.Weight.HasValue)
+                patient.Weight = request.Weight.Value;
+
+            if (!string.IsNullOrEmpty(request.EmergencyContactName))
+                patient.EmergencyContactName = request.EmergencyContactName;
+
+            if (!string.IsNullOrEmpty(request.EmergencyContactPhone))
+                patient.EmergencyContactPhone = request.EmergencyContactPhone;
+
+            if (!string.IsNullOrEmpty(request.EmergencyContactRelation))
+                patient.EmergencyContactRelation = request.EmergencyContactRelation;
+
+            if (!string.IsNullOrEmpty(request.Address))
+                patient.Address = request.Address;
+
+            if (!string.IsNullOrEmpty(request.City))
+                patient.City = request.City;
+
+            if (!string.IsNullOrEmpty(request.State))
+                patient.State = request.State;
+
+            if (!string.IsNullOrEmpty(request.ZipCode))
+                patient.ZipCode = request.ZipCode;
+
+            if (!string.IsNullOrEmpty(request.InsuranceProvider))
+                patient.InsuranceProvider = request.InsuranceProvider;
+
+            if (!string.IsNullOrEmpty(request.InsurancePolicyNumber))
+                patient.InsurancePolicyNumber = request.InsurancePolicyNumber;
+
             patient.UpdatedAt = DateTime.UtcNow;
+
+            // Update or create medical history if allergies or chronic conditions provided
+            if (!string.IsNullOrEmpty(request.Allergies) || !string.IsNullOrEmpty(request.ChronicConditions))
+            {
+                var medicalHistory = await _context.MedicalHistory
+                    .FirstOrDefaultAsync(m => m.PatientId == patientId);
+
+                if (medicalHistory == null)
+                {
+                    // Create new medical history
+                    medicalHistory = new MedicalHistory
+                    {
+                        Id = Guid.NewGuid(),
+                        PatientId = patientId,
+                        ChronicConditions = !string.IsNullOrEmpty(request.ChronicConditions)
+                            ? request.ChronicConditions.Split(',').Select(c => c.Trim()).ToList()
+                            : new List<string>(),
+                        Allergies = !string.IsNullOrEmpty(request.Allergies)
+                            ? request.Allergies.Split(',').Select(a => a.Trim()).ToList()
+                            : new List<string>(),
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.MedicalHistory.Add(medicalHistory);
+                }
+                else
+                {
+                    // Update existing medical history
+                    if (!string.IsNullOrEmpty(request.ChronicConditions))
+                    {
+                        medicalHistory.ChronicConditions = request.ChronicConditions.Split(',').Select(c => c.Trim()).ToList();
+                    }
+
+                    if (!string.IsNullOrEmpty(request.Allergies))
+                    {
+                        medicalHistory.Allergies = request.Allergies.Split(',').Select(a => a.Trim()).ToList();
+                    }
+
+                    medicalHistory.UpdatedAt = DateTime.UtcNow;
+                }
+            }
 
             await _context.SaveChangesAsync();
 
@@ -228,6 +301,10 @@ namespace HealthcareSystem.Infrastructure.Services
 
         private async Task<PatientResponse> MapToPatientResponse(Domain.Entities.Patient patient)
         {
+            // Get medical history if exists
+            var medicalHistory = await _context.MedicalHistory
+                .FirstOrDefaultAsync(m => m.PatientId == patient.Id);
+
             return new PatientResponse
             {
                 Id = patient.Id,
@@ -239,7 +316,7 @@ namespace HealthcareSystem.Infrastructure.Services
                 PhoneNumber = patient.User.PhoneNumber,
                 DateOfBirth = patient.User.DateOfBirth,
                 Gender = patient.User.Gender,
-                BloodGroup = patient.BloodGroup,
+                BloodGroup = patient.BloodGroup?.ToString().Replace("Plus", "+").Replace("Minus", "-"),
                 Height = patient.Height,
                 Weight = patient.Weight,
                 EmergencyContactName = patient.EmergencyContactName,
@@ -251,6 +328,8 @@ namespace HealthcareSystem.Infrastructure.Services
                 ZipCode = patient.ZipCode,
                 InsuranceProvider = patient.InsuranceProvider,
                 InsurancePolicyNumber = patient.InsurancePolicyNumber,
+                Allergies = medicalHistory != null ? string.Join(", ", medicalHistory.Allergies) : null,
+                ChronicConditions = medicalHistory != null ? string.Join(", ", medicalHistory.ChronicConditions) : null,
                 CreatedAt = patient.CreatedAt
             };
         }

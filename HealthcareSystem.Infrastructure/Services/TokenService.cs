@@ -66,7 +66,7 @@ namespace HealthcareSystem.Application.Services
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), // IMPORTANT: Add this!
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()), 
                 new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
                 new Claim(ClaimTypes.GivenName, user.FirstName),
                 new Claim(ClaimTypes.Surname, user.LastName),
@@ -96,7 +96,7 @@ namespace HealthcareSystem.Application.Services
 
         public string GenerateRefreshToken()
         {
-            var randomNumber = new byte[64]; // Increased from 32 to 64 for better security
+            var randomNumber = new byte[64]; 
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
             return Convert.ToBase64String(randomNumber);
@@ -111,7 +111,7 @@ namespace HealthcareSystem.Application.Services
             }
 
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_secretKey); // FIX: Use _secretKey, not SecurityKey
+            var key = Encoding.UTF8.GetBytes(_secretKey); 
 
             try
             {
@@ -127,7 +127,7 @@ namespace HealthcareSystem.Application.Services
                     ValidAudience = _audience,
 
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero, // No tolerance for expired tokens
+                    ClockSkew = TimeSpan.Zero, 
 
                     RequireExpirationTime = true,
                     RequireSignedTokens = true
@@ -135,7 +135,6 @@ namespace HealthcareSystem.Application.Services
 
                 var jwtToken = (JwtSecurityToken)validatedToken;
 
-                // Try multiple claim types for userId
                 var userIdClaim = jwtToken.Claims.FirstOrDefault(x =>
                     x.Type == JwtRegisteredClaimNames.Sub ||
                     x.Type == ClaimTypes.NameIdentifier)?.Value;

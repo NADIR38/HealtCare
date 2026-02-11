@@ -12,6 +12,7 @@ namespace HealthCare.Controllers
     public class PatientsController : Controller
     {
         private readonly IPatientService _patientService;
+
         public PatientsController(IPatientService patientservice)
         {
             _patientService = patientservice;
@@ -60,11 +61,11 @@ namespace HealthCare.Controllers
         }
         [HttpGet]
         [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
-        public async Task<IActionResult> GetAllPatients([FromQuery] int page = 1, [FromQuery] int pagesize = 10, [FromQuery] string? search=null)
+        public async Task<IActionResult> GetAllPatients([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search=null)
         {
             try
             {
-                var response = await _patientService.GetAllPatientsAsync(page,pagesize,search);
+                var response = await _patientService.GetAllPatientsAsync(page,pageSize,search);
                 return Ok(response);
             }
             catch (Exception ex)
@@ -72,13 +73,15 @@ namespace HealthCare.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
-
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdatePatient(Guid id, [FromBody] UpdatePatientRequest request)
         {
             try
             {
+
                 var response = await _patientService.UpdatePatientAsync(id, request);
+
+
                 return Ok(response);
             }
             catch (Exception ex)

@@ -154,8 +154,13 @@ namespace HealthcareSystem.Infrastructure.Services
             _context.UserRoles.RemoveRange(existingRoles);
 
             // Add new roles
+            // Line 158 ke aas paas ki logic ko is se replace karein:
             var validRoles = request.Roles
-                .Select(r => Enum.TryParse<Role>(r, out var role) ? role : (Role?)null)
+                .Select(r =>
+                {
+                    if (Enum.TryParse<Role>(r.ToString(), out var role)) return (Role?)role;
+                    return null;
+                })
                 .Where(r => r.HasValue)
                 .Select(r => r!.Value)
                 .Distinct()
