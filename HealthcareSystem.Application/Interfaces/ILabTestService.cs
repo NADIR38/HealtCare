@@ -1,4 +1,5 @@
-﻿using HealthcareSystem.Application.DTOs.LabTest;
+﻿using HealthcareSystem.Application.Dto.MedicalRecords;
+using HealthcareSystem.Application.DTOs.LabTest;
 using HealthcareSystem.Domain.Enums;
 using System;
 using System.Collections.Generic;
@@ -9,73 +10,76 @@ namespace HealthcareSystem.Application.Interfaces
     public interface ILabTestService
     {
         /// <summary>
-        /// TODO: Order a lab test
-        /// - Validate patient and doctor exist
-        /// - If medicalRecordId provided, validate it
-        /// - Create lab test with status "Ordered"
-        /// - Set ordered date to now
-        /// - Save to database
-        /// - Return response
+        /// Order a new lab test
         /// </summary>
         Task<LabTestResponse> OrderLabTestAsync(CreateLabTestRequest request);
 
         /// <summary>
-        /// TODO: Get lab test by ID
-        /// - Fetch with includes
-        /// - Map to response
+        /// Get lab test by ID
         /// </summary>
         Task<LabTestResponse> GetLabTestByIdAsync(Guid labTestId);
 
         /// <summary>
-        /// TODO: Get patient's lab tests
-        /// - Validate patient exists
-        /// - Fetch tests ordered by ordered date descending
-        /// - Optionally filter by status
-        /// - Map to responses
+        /// Get patient's lab tests with optional status filter
         /// </summary>
         Task<List<LabTestResponse>> GetPatientLabTestsAsync(Guid patientId, LabTestStatus? status);
 
         /// <summary>
-        /// TODO: Get doctor's ordered lab tests
-        /// - Validate doctor exists
-        /// - Fetch tests with date filters
-        /// - Map to responses
+        /// Get doctor's ordered lab tests with optional date range
         /// </summary>
         Task<List<LabTestResponse>> GetDoctorLabTestsAsync(Guid doctorId, DateTime? fromDate, DateTime? toDate);
 
         /// <summary>
-        /// TODO: Update lab test status
-        /// - Fetch test
-        /// - Update status and related dates based on new status:
-        ///   - If SampleCollected, set SampleCollectedDate
-        ///   - If Completed, set ResultDate
-        /// - Update results if provided
-        /// - Save changes
-        /// - If status is Completed, send email notification to patient
-        /// - Return response
+        /// Get all lab tests with pagination and search
+        /// </summary>
+        Task<List<LabTestResponse>> GetAllLabTestsAsync(int page, int pageSize, string? search);
+
+        /// <summary>
+        /// Collect sample for lab test
+        /// Updates status from Ordered to SampleCollected
+        /// Frontend: useCollectSample hook
+        /// </summary>
+        Task<LabTestResponse> CollectSampleAsync(Guid labTestId);
+
+        /// <summary>
+        /// Start processing lab test
+        /// Updates status from SampleCollected to InProgress
+        /// Frontend: useStartProcessing hook
+        /// </summary>
+        Task<LabTestResponse> StartProcessingAsync(Guid labTestId);
+
+        /// <summary>
+        /// Update lab test result with all result fields
+        /// Updates status to Completed and sends notifications
+        /// Frontend: useUpdateLabTestResult hook (MAIN METHOD)
+        /// </summary>
+        Task<LabTestResponse> UpdateLabTestResultAsync(Guid labTestId, UpdateLabTestResultRequest request);
+
+        /// <summary>
+        /// Complete lab test (mark as completed)
+        /// Frontend: useCompleteLabTest hook
+        /// </summary>
+        Task<LabTestResponse> CompleteLabTestAsync(Guid labTestId);
+
+        /// <summary>
+        /// Cancel lab test with reason
+        /// Frontend: useCancelLabTest hook (PUT with body)
+        /// </summary>
+        Task<LabTestResponse> CancelLabTestWithReasonAsync(Guid labTestId, string cancellationReason);
+
+        /// <summary>
+        /// Cancel lab test (legacy method without reason)
+        /// </summary>
+        Task<bool> CancelLabTestAsync(Guid labTestId);
+
+        /// <summary>
+        /// Update lab test status and basic info
         /// </summary>
         Task<LabTestResponse> UpdateLabTestAsync(Guid labTestId, UpdateLabTestRequest request);
 
         /// <summary>
-        /// TODO: Upload lab test result file
-        /// - Validate test exists
-        /// - Save file to storage (file system/blob storage)
-        /// - Update test with file URL
-        /// - Update status to Completed if not already
-        /// - Send email to patient
-        /// - Return response
-        /// For now, accept file as byte[] and filename, store locally
+        /// Upload lab test result file (PDF, image, etc.)
         /// </summary>
         Task<LabTestResponse> UploadLabTestResultAsync(Guid labTestId, byte[] fileContent, string fileName);
-
-        /// <summary>
-        /// TODO: Cancel lab test
-        /// - Fetch test
-        /// - Validate it's not already completed
-        /// - Set status to Cancelled
-        /// - Save changes
-        /// - Return success
-        /// </summary>
-        Task<bool> CancelLabTestAsync(Guid labTestId);
     }
 }

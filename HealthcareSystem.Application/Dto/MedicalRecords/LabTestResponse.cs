@@ -16,7 +16,10 @@ namespace HealthcareSystem.Application.DTOs.LabTest
         public string TestName { get; set; } = string.Empty;
         public string? TestType { get; set; }
         public LabTestStatus Status { get; set; }
-
+        public string? ResultValue { get; set; }
+        public string? ResultUnit { get; set; }
+        public string? ReferenceRange { get; set; }
+        public bool AbnormalFlag { get; set; }
         public DateTime OrderedDate { get; set; }
         public DateTime? SampleCollectedDate { get; set; }
         public DateTime? ResultDate { get; set; }

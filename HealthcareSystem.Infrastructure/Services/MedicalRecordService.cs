@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using HealthcareSystem.Application.Dto.MedicalRecords;
@@ -52,6 +53,7 @@ namespace HealthcareSystem.Infrastructure.Services
                     RecordedAt = DateTime.UtcNow
                 };
             }
+           
 
             // Update vital signs
             medicalRecord.VitalSigns.BloodPressureSystolic = request.BloodPressureSystolic;
@@ -76,7 +78,7 @@ namespace HealthcareSystem.Infrastructure.Services
 
             return MaptoMedicalRecordResponse(medicalRecord);
         }
-
+      
         public async Task<MedicalRecordResponse> CreateMedicalRecordAsync(CreateMedicalRecordRequest request)
         {
             var patient = await _helper.CheckPatientExist(request.PatientId);
@@ -365,5 +367,46 @@ namespace HealthcareSystem.Infrastructure.Services
 
             return Math.Round(bmi, 2);
         }
+
+        public async Task<List<MedicalRecordResponse>> GetAllMedicalRecords(int page, int pageSize, string? search)
+        {
+            // 1. Validation
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 20;
+
+            // 2. Query building with Includes (Frontend details show karne ke liye zaroori hain)
+            var query = _context.MedicalRecord
+                .Include(m => m.Patient).ThenInclude(u => u.User)
+                .Include(m => m.Doctor).ThenInclude(u => u.User)
+                .Include(m => m.VitalSigns)
+                .Include(m => m.Appointment)
+                .Include(m => m.Prescriptions)
+                .Include(m => m.LabTests)
+                .AsQueryable();
+
+            // 3. Search logic (Patient name, Doctor name ya Diagnosis par filter)
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+                query = query.Where(u =>
+                    u.Patient.User.FirstName.ToLower().Contains(search) ||
+                    u.Patient.User.LastName.ToLower().Contains(search) ||
+                    u.Doctor.User.FirstName.ToLower().Contains(search) ||
+                    u.Diagnosis.ToLower().Contains(search));
+            }
+
+            // 4. Pagination aur Execution
+            var records = await query
+                .OrderByDescending(d => d.CreatedAt) // Latest records pehle
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // 5. Mapping to Response DTO
+            var responses = records.Select(r => MaptoMedicalRecordResponse(r)).ToList();
+
+            return responses;
+        }
     }
-}
+    }
+

@@ -74,5 +74,6 @@ namespace HealthcareSystem.Application.Interfaces
         /// - Return success
         /// </summary>
         Task<bool> DeleteMedicalRecordAsync(Guid medicalRecordId);
+        Task<List<MedicalRecordResponse>> GetAllMedicalRecords(int page, int pageSize, string? search);
     }
 }

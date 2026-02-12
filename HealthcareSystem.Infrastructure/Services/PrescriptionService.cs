@@ -310,7 +310,47 @@ namespace HealthcareSystem.Infrastructure.Services
 
             await _emailService.SendEmailAsync(message);
         }
+        public async Task<List<PrescriptionResponse>> GetAllPrescriptionsAsync(int page, int pageSize, string? search)
+        {
+            // Pagination settings
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 100) pageSize = 20;
 
+            var query = _context.Prescriptions
+                .Include(p => p.Patient).ThenInclude(p => p.User)
+                .Include(p => p.Doctor).ThenInclude(d => d.User)
+                .Include(p => p.Items)
+                // Agar MedicalRecord ka diagnosis bhi search karna hai to isko include karein
+                .Include(p => p.MedicalRecord)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                search = search.ToLower();
+
+                query = query.Where(rx =>
+                    // 1. Prescription Number Search
+                    rx.PrescriptionNumber.ToLower().Contains(search) ||
+
+                    // 2. Patient Name Search (First + Last Name)
+                    (rx.Patient.User.FirstName + " " + rx.Patient.User.LastName).ToLower().Contains(search) ||
+
+                    // 3. Doctor Name Search (First + Last Name)
+                    (rx.Doctor.User.FirstName + " " + rx.Doctor.User.LastName).ToLower().Contains(search) ||
+
+                    // 4. Diagnosis Search (MedicalRecord se)
+                    (rx.MedicalRecord != null && rx.MedicalRecord.Diagnosis.ToLower().Contains(search))
+                );
+            }
+
+            var prescriptions = await query
+                .OrderByDescending(p => p.PrescriptionDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return prescriptions.Select(MapToPrescriptionResponse).ToList();
+        }
         private PrescriptionResponse MapToPrescriptionResponse(Prescription prescription)
         {
             return new PrescriptionResponse
@@ -341,6 +381,8 @@ namespace HealthcareSystem.Infrastructure.Services
 
                 CreatedAt = prescription.CreatedAt
             };
+
         }
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿using HealthcareSystem.API.Attributes;
+using HealthcareSystem.Application.Dto.MedicalRecords;
 using HealthcareSystem.Application.DTOs.LabTest;
 using HealthcareSystem.Application.Interfaces;
 using HealthcareSystem.Domain.Enums;
@@ -46,6 +47,23 @@ namespace HealthcareSystem.API.Controllers
             var response = await _labTestService.OrderLabTestAsync(request);
 
             return CreatedAtAction(nameof(GetLabTestById), new { id = response.Id }, response);
+        }
+
+        /// <summary>
+        /// Get all lab tests with pagination and search (Admin/Staff only)
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin,LabTechnician")]
+        public async Task<IActionResult> GetAllLabTests(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? search = null)
+        {
+            _logger.LogInformation("Retrieving all lab tests. Page: {Page}, Search: {Search}", page, search);
+
+            var response = await _labTestService.GetAllLabTestsAsync(page, pageSize, search);
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -101,7 +119,132 @@ namespace HealthcareSystem.API.Controllers
         }
 
         /// <summary>
-        /// Update lab test status and results
+        /// Get lab test statistics for a doctor
+        /// </summary>
+        [HttpGet("doctor/{doctorId}/statistics")]
+        [Authorize(Roles = "Doctor,Admin")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetLabTestStatistics(
+            Guid doctorId,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null)
+        {
+            _logger.LogInformation("Retrieving lab test statistics for doctor {DoctorId}", doctorId);
+
+            var tests = await _labTestService.GetDoctorLabTestsAsync(doctorId, fromDate, toDate);
+
+            var statistics = new
+            {
+                totalTests = tests.Count,
+                ordered = tests.Count(t => t.Status == LabTestStatus.Ordered),
+                sampleCollected = tests.Count(t => t.Status == LabTestStatus.SampleCollected),
+                inProgress = tests.Count(t => t.Status == LabTestStatus.InProgress),
+                completed = tests.Count(t => t.Status == LabTestStatus.Completed),
+                cancelled = tests.Count(t => t.Status == LabTestStatus.Cancelled),
+                completionRate = tests.Count > 0
+                    ? Math.Round((double)tests.Count(t => t.Status == LabTestStatus.Completed) / tests.Count * 100, 2)
+                    : 0
+            };
+
+            return Ok(statistics);
+        }
+
+        /// <summary>
+        /// Mark lab test sample as collected
+        /// Frontend: useCollectSample mutation
+        /// </summary>
+        [HttpPut("{id}/collect-sample")]
+        [Authorize(Roles = "LabTechnician,Nurse,Admin")]
+        [ProducesResponseType(typeof(LabTestResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CollectSample(Guid id)
+        {
+            _logger.LogInformation("Collecting sample for lab test {Id}", id);
+
+            var response = await _labTestService.CollectSampleAsync(id);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Start processing lab test
+        /// Frontend: useStartProcessing mutation
+        /// </summary>
+        [HttpPut("{id}/start-processing")]
+        [Authorize(Roles = "LabTechnician,Admin")]
+        [ProducesResponseType(typeof(LabTestResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> StartProcessing(Guid id)
+        {
+            _logger.LogInformation("Starting processing for lab test {Id}", id);
+
+            var response = await _labTestService.StartProcessingAsync(id);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Update lab test results (TanStack: useUpdateLabTestResult)
+        /// Frontend: PUT /api/labtests/{id}/result
+        /// </summary>
+        [HttpPut("{id}/result")]
+        [Authorize(Roles = "LabTechnician,Admin")]
+        [ProducesResponseType(typeof(LabTestResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateLabTestResult(Guid id, [FromBody] UpdateLabTestResultRequest request)
+        {
+            _logger.LogInformation("Updating results for lab test {Id}", id);
+
+            //// Validate required field
+            //if (string.IsNullOrWhiteSpace(request.Result))
+            //{
+            //    return BadRequest(new { message = "Result field is required" });
+            //}
+
+            var response = await _labTestService.UpdateLabTestResultAsync(id, request);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Complete test (mark as completed)
+        /// Frontend: useCompleteLabTest mutation
+        /// </summary>
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = "LabTechnician,Admin")]
+        [ProducesResponseType(typeof(LabTestResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Complete(Guid id)
+        {
+            _logger.LogInformation("Completing lab test {Id}", id);
+
+            var response = await _labTestService.CompleteLabTestAsync(id);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Cancel lab test
+        /// Frontend: useCancelLabTest mutation (PUT request with body)
+        /// </summary>
+        [HttpPut("{id}/cancel")]
+        [Authorize(Roles = "Doctor,Admin,LabTechnician")]
+        [ProducesResponseType(typeof(LabTestResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelLabTestRequest request)
+        {
+            _logger.LogInformation("Cancelling lab test {Id} with reason: {Reason}", id, request.CancellationReason);
+
+            var response = await _labTestService.CancelLabTestWithReasonAsync(id, request.CancellationReason);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Update lab test status and basic info
         /// </summary>
         [HttpPut("{id}")]
         [Authorize(Roles = "Doctor,LabTechnician,Admin")]
@@ -141,7 +284,6 @@ namespace HealthcareSystem.API.Controllers
                 return BadRequest(new { message = "File size must not exceed 10MB" });
             }
 
-            
             var allowedExtensions = new[] { ".pdf", ".png", ".jpg", ".jpeg" };
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
@@ -153,7 +295,6 @@ namespace HealthcareSystem.API.Controllers
             _logger.LogInformation("Uploading result file for lab test {LabTestId}: {FileName}",
                 id, file.FileName);
 
-           
             byte[] fileContent;
             using (var memoryStream = new MemoryStream())
             {
@@ -197,55 +338,9 @@ namespace HealthcareSystem.API.Controllers
         }
 
         /// <summary>
-        /// Cancel a lab test
+        /// Download lab test report PDF
         /// </summary>
-        [HttpPost("{id}/cancel")]
-        [Authorize(Roles = "Doctor,Admin")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> CancelLabTest(Guid id)
-        {
-            _logger.LogInformation("Cancelling lab test {LabTestId}", id);
-
-            var result = await _labTestService.CancelLabTestAsync(id);
-
-            return Ok(new { message = "Lab test cancelled successfully", cancelled = result });
-        }
-
-        /// <summary>
-        /// Get lab test statistics for a doctor
-        /// </summary>
-        [HttpGet("doctor/{doctorId}/statistics")]
-        [Authorize(Roles = "Doctor,Admin")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetLabTestStatistics(
-            Guid doctorId,
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null)
-        {
-            _logger.LogInformation("Retrieving lab test statistics for doctor {DoctorId}", doctorId);
-
-            var tests = await _labTestService.GetDoctorLabTestsAsync(doctorId, fromDate, toDate);
-
-            var statistics = new
-            {
-                totalTests = tests.Count,
-                ordered = tests.Count(t => t.Status == LabTestStatus.Ordered),
-                sampleCollected = tests.Count(t => t.Status == LabTestStatus.SampleCollected),
-                inProgress = tests.Count(t => t.Status == LabTestStatus.InProgress),
-                completed = tests.Count(t => t.Status == LabTestStatus.Completed),
-                cancelled = tests.Count(t => t.Status == LabTestStatus.Cancelled),
-                completionRate = tests.Count > 0
-                    ? Math.Round((double)tests.Count(t => t.Status == LabTestStatus.Completed) / tests.Count * 100, 2)
-                    : 0
-            };
-
-            return Ok(statistics);
-        }
-       
-        [HttpGet("{id}/report-pdf")]
+        [HttpGet("{id}/pdf")]
         [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> DownloadLabTestReportPdf(Guid id, [FromServices] IPdfService pdfService)
@@ -268,6 +363,7 @@ namespace HealthcareSystem.API.Controllers
                 return StatusCode(500, new { message = "Error generating PDF" });
             }
         }
+
         private string GetContentType(string fileName)
         {
             var extension = Path.GetExtension(fileName).ToLowerInvariant();
@@ -280,5 +376,13 @@ namespace HealthcareSystem.API.Controllers
                 _ => "application/octet-stream"
             };
         }
+    }
+
+    /// <summary>
+    /// Request model for cancelling a lab test
+    /// </summary>
+    public class CancelLabTestRequest
+    {
+        public string CancellationReason { get; set; } = string.Empty;
     }
 }

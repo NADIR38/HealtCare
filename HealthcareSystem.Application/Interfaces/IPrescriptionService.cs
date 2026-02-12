@@ -62,5 +62,6 @@ namespace HealthcareSystem.Application.Interfaces
         /// For now, just throw NotImplementedException - we'll implement on Day 7
         /// </summary>
         Task<byte[]> GeneratePrescriptionPdfAsync(Guid prescriptionId);
+        Task<List<PrescriptionResponse>> GetAllPrescriptionsAsync(int page, int pageSize, string? search);
     }
 }

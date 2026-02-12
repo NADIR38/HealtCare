@@ -20,17 +20,22 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuestPDF.Infrastructure;
 using StackExchange.Redis;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+QuestPDF.Settings.License = LicenseType.Community;
 // --- 1. CORE SERVICES ---
 // Program.cs
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        // Yeh line string enums ko C# enums mein convert karegi
+        // Enable case-insensitive property binding (so "result" maps to "Result")
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+
+        // Keep your enum converter
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 builder.Services.AddEndpointsApiExplorer();

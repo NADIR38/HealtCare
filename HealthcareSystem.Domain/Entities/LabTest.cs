@@ -20,7 +20,10 @@ namespace HealthcareSystem.Domain.Entities
         public string? Notes { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
-
+        public string? ResultValue { get; set; }
+        public string? ResultUnit { get; set; }
+        public string? ReferenceRange { get; set; }
+        public bool AbnormalFlag { get; set; } // Matches TS interface
         // Navigation properties
         public Patient Patient { get; set; } = null!;
         public Doctor Doctor { get; set; } = null!;

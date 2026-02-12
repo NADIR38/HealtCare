@@ -123,5 +123,88 @@ namespace HealthcareSystem.API.Controllers
 
             return File(pdfBytes, "application/pdf", $"prescription-{id}.pdf");
         }
+        /// <summary>
+        /// Get all prescriptions with pagination and search
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")] // Roles frontend requirements ke mutabik adjust kiye hain
+        [ProducesResponseType(typeof(List<PrescriptionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetAllPrescriptions(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? search = null)
+        {
+            _logger.LogInformation("Retrieving all prescriptions. Page: {Page}, Size: {PageSize}, Search: {Search}",
+                page, pageSize, search);
+
+            var response = await _prescriptionService.GetAllPrescriptionsAsync(page, pageSize, search);
+
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Get active prescriptions for a patient
+        /// </summary>
+        [HttpGet("patient/{patientId}/active")]
+        [ProducesResponseType(typeof(List<PrescriptionResponse>), StatusCodes.Status200OK)]
+        public async Task<IActionResult> GetActivePatientPrescriptions(Guid patientId)
+        {
+            _logger.LogInformation("Retrieving active prescriptions for patient {PatientId}", patientId);
+
+            // Note: Iske liye aapko service mein ek chota sa filter lagana hoga 
+            // jo sirf 'ValidUntil > DateTime.Now' wale records laye.
+            var response = await _prescriptionService.GetPatientPrescriptionsAsync(patientId);
+            var activePrescriptions = response.Where(p => !p.ValidUntil.HasValue || p.ValidUntil > DateTime.UtcNow).ToList();
+
+            return Ok(activePrescriptions);
+        }
+
+        /// <summary>
+        /// Update prescription (TanStack: useUpdatePrescription)
+        /// </summary>
+        //[HttpPut("{id}")]
+        //[Authorize(Roles = "Doctor,Admin")]
+        //public async Task<IActionResult> UpdatePrescription(Guid id, [FromBody] UpdatePrescriptionRequest request)
+        //{
+        //    _logger.LogInformation("Updating prescription {Id}", id);
+        //    // TODO: Implement UpdatePrescriptionAsync in Service
+        //    return Ok(new { message = "Update logic to be implemented" });
+        //}
+
+        /// <summary>
+        /// Cancel prescription (TanStack: useCancelPrescription)
+        /// </summary>
+        [HttpPut("{id}/cancel")]
+        [Authorize(Roles = "Doctor,Admin")]
+        //public async Task<IActionResult> CancelPrescription(Guid id, [FromBody] string cancellationReason)
+        //{
+        //    _logger.LogInformation("Cancelling prescription {Id}", id);
+        //    // TODO: Implement Cancel logic (e.g., updating status enum)
+        //    return Ok();
+        //}
+
+        /// <summary>
+        /// Mark as completed (TanStack: useCompletePrescription)
+        /// </summary>
+        [HttpPut("{id}/complete")]
+        [Authorize(Roles = "Pharmacist,Admin")]
+        //public async Task<IActionResult> CompletePrescription(Guid id)
+        //{
+        //    _logger.LogInformation("Completing prescription {Id}", id);
+        //    return Ok();
+        //}
+
+        /// <summary>
+        /// Delete prescription (TanStack: useDeletePrescription)
+        /// </summary>
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> DeletePrescription(Guid id)
+        {
+            _logger.LogInformation("Deleting prescription {Id}", id);
+            // await _prescriptionService.DeleteAsync(id);
+            return NoContent();
+        }
+
     }
 }

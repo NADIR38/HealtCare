@@ -175,5 +175,24 @@ namespace HealthcareSystem.API.Controllers
                 return StatusCode(500, new { message = "Error generating PDF" });
             }
         }
+        /// <summary>
+        /// Get all medical records with pagination and search (Admin only)
+        /// </summary>
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(typeof(List<MedicalRecordResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> GetAllMedicalRecords(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? search = null)
+        {
+            _logger.LogInformation("Admin retrieving all medical records. Page: {Page}, Size: {PageSize}, Search: {Search}",
+                page, pageSize, search);
+
+            var response = await _medicalRecordService.GetAllMedicalRecords(page, pageSize, search);
+
+            return Ok(response);
+        }
     }
     }

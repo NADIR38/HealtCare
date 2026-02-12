@@ -19,4 +19,9 @@ namespace HealthcareSystem.Application.DTOs.LabTest
         public string? TestType { get; set; }
         public string? Notes { get; set; }
     }
+    public class CancelRequest
+    {
+        // Frontend 'cancellationReason' bhej raha hai, hum yahan match kar rahe hain
+        public string CancellationReason { get; set; } = string.Empty;
+    }
 }
