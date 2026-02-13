@@ -60,7 +60,7 @@ namespace HealthCare.Controllers
             }
         }
         [HttpGet]
-        [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
+        [Authorize]
         public async Task<IActionResult> GetAllPatients([FromQuery] int page = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search=null)
         {
             try

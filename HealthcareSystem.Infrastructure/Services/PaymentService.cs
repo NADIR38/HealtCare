@@ -105,13 +105,18 @@ namespace HealthcareSystem.Infrastructure.Services
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+                try
+                {
+                    // Send payment confirmation email
+                    await SendPaymentConfirmationEmail(payment, invoice);
 
-                // Send payment confirmation email
-                await SendPaymentConfirmationEmail(payment, invoice);
-
-                _logger.LogInformation("Payment {PaymentNumber} created for invoice {InvoiceNumber}",
-                    paymentNumber, invoice.InvoiceNumber);
-
+                    _logger.LogInformation("Payment {PaymentNumber} created for invoice {InvoiceNumber}",
+                        paymentNumber, invoice.InvoiceNumber);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogInformation(ex, "Cannot send email");
+                }
                 return await GetPaymentByIdAsync(payment.Id);
             }
             // PaymentService.cs line 119 ke aas paas
@@ -387,12 +392,18 @@ namespace HealthcareSystem.Infrastructure.Services
                         </html>",
                     IsHtml = true
                 };
+                try
+                {
 
-                await _emailService.SendEmailAsync(emailMessage);
+                    await _emailService.SendEmailAsync(emailMessage);
 
-                _logger.LogInformation("Payment {PaymentNumber} refunded. Reason: {Reason}",
-                    payment.PaymentNumber, reason ?? "Not specified");
-
+                    _logger.LogInformation("Payment {PaymentNumber} refunded. Reason: {Reason}",
+                        payment.PaymentNumber, reason ?? "Not specified");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogInformation(ex, "Cannot send email");
+                }
                 return true;
             }
             catch (Exception ex)

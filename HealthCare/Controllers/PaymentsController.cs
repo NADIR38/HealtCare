@@ -13,11 +13,11 @@ namespace HealthcareSystem.API.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class PaymentController : ControllerBase
+    public class PaymentsController : ControllerBase
     {
         private readonly IPaymentService _paymentService;
 
-        public PaymentController(IPaymentService paymentService)
+        public PaymentsController(IPaymentService paymentService)
         {
             _paymentService = paymentService;
         }

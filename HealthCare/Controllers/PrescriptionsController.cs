@@ -159,21 +159,7 @@ namespace HealthcareSystem.API.Controllers
             return Ok(activePrescriptions);
         }
 
-        /// <summary>
-        /// Update prescription (TanStack: useUpdatePrescription)
-        /// </summary>
-        //[HttpPut("{id}")]
-        //[Authorize(Roles = "Doctor,Admin")]
-        //public async Task<IActionResult> UpdatePrescription(Guid id, [FromBody] UpdatePrescriptionRequest request)
-        //{
-        //    _logger.LogInformation("Updating prescription {Id}", id);
-        //    // TODO: Implement UpdatePrescriptionAsync in Service
-        //    return Ok(new { message = "Update logic to be implemented" });
-        //}
-
-        /// <summary>
-        /// Cancel prescription (TanStack: useCancelPrescription)
-        /// </summary>
+       
         [HttpPut("{id}/cancel")]
         [Authorize(Roles = "Doctor,Admin")]
         //public async Task<IActionResult> CancelPrescription(Guid id, [FromBody] string cancellationReason)

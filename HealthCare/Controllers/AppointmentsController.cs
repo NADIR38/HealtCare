@@ -139,7 +139,6 @@ namespace HealthcareSystem.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Doctor,Nurse,Receptionist")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllAppointments(
             [FromQuery] int page = 1,
@@ -177,6 +176,7 @@ namespace HealthcareSystem.API.Controllers
         [HttpGet("patient/{patientId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize]
         public async Task<IActionResult> GetPatientAppointments(
             Guid patientId,
             [FromQuery] bool includeHistory = false)
