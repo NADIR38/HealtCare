@@ -25,6 +25,11 @@ RUN dotnet publish "Healthcare.csproj" -c Release -o /app/publish /p:UseAppHost=
 # Use .NET 9 runtime for running
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
 WORKDIR /app
+
+# Render provides PORT as environment variable
+ENV ASPNETCORE_URLS=http://0.0.0.0:${PORT:-8080}
+ENV ASPNETCORE_ENVIRONMENT=Production
+
 EXPOSE 8080
 COPY --from=publish /app/publish .
 
