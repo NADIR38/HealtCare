@@ -201,9 +201,15 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); 
-app.UseCors("AllowAll");
-
+app.UseStaticFiles();
+if (app.Environment.IsProduction())
+{
+    app.UseCors("Production");
+}
+else
+{
+    app.UseCors("AllowAll");
+}
 app.UseResponseCaching(); 
 
 app.UseIpRateLimiting();
