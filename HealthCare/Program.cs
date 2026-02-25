@@ -95,9 +95,6 @@ builder.Services.AddHangfire(configuration => configuration
     ))
 );
 
-
-
-
 // --- 4. DATABASE CONFIGURATION (MySQL) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -173,10 +170,21 @@ builder.Services.AddAuthorization(options =>
         policy.AddRequirements(new DoctorOwnerRequirement()));
 });
 // --- 9. CORS ---
+// --- 9. CORS ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
         policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+
+    options.AddPolicy("Production", policy =>
+    {
+        var origins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>()
+            ?? new[] { "*" };
+        policy.WithOrigins(origins)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
 });
 builder.Services.AddSignalR();
 
