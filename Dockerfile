@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy solution and project files
-COPY ["HealthcareSystem.API/Healthcare.csproj", "Healthcare/"]
+COPY ["Healthcare/Healthcare.csproj", "Healthcare/"]
 COPY ["HealthcareSystem.Application/HealthcareSystem.Application.csproj", "HealthcareSystem.Application/"]
 COPY ["HealthcareSystem.Domain/HealthcareSystem.Domain.csproj", "HealthcareSystem.Domain/"]
 COPY ["HealthcareSystem.Infrastructure/HealthcareSystem.Infrastructure.csproj", "HealthcareSystem.Infrastructure/"]
