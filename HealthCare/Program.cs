@@ -1,5 +1,6 @@
 ﻿using AspNetCoreRateLimit;
 using Hangfire;
+using Hangfire.MemoryStorage;
 using Hangfire.MySql;
 using HealthCare.Authorization;
 using HealthcareSystem.API.Authorization;
@@ -233,12 +234,12 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-//app.UseHangfireDashboard("/Hangfire", new DashboardOptions
-//{
-//    Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
-//    AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
-//    DashboardTitle = "Healthcare System - Background Jobs"
-//});
+app.UseHangfireDashboard("/Hangfire", new DashboardOptions
+{
+    Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
+    AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
+    DashboardTitle = "Healthcare System - Background Jobs"
+});
 HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
