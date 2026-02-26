@@ -79,29 +79,29 @@ builder.Services.AddSwaggerGen(options =>
 // Disable Hangfire for production (Aiven MySQL doesn't support it)
 // Use in-memory Hangfire storage for production
 // --- HANGFIRE CONFIGURATION (DISABLED FOR PRODUCTION) ---
-//if (!builder.Environment.IsProduction())
-//{
-//    builder.Services.AddHangfire(configuration => configuration
-//        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-//        .UseSimpleAssemblyNameTypeSerializer()
-//        .UseRecommendedSerializerSettings()
-//        .UseStorage(new MySqlStorage(
-//            builder.Configuration.GetConnectionString("HangFire"),
-//            new MySqlStorageOptions
-//            {
-//                QueuePollInterval = TimeSpan.FromSeconds(15),
-//                JobExpirationCheckInterval = TimeSpan.FromHours(1),
-//                CountersAggregateInterval = TimeSpan.FromMinutes(5),
-//                PrepareSchemaIfNecessary = true,
-//                DashboardJobListLimit = 50000,
-//                TransactionTimeout = TimeSpan.FromMinutes(1),
-//                TablesPrefix = "Hangfire"
-//            }
-//        ))
-//    );
+if (!builder.Environment.IsProduction())
+{
+    builder.Services.AddHangfire(configuration => configuration
+        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+        .UseSimpleAssemblyNameTypeSerializer()
+        .UseRecommendedSerializerSettings()
+        .UseStorage(new MySqlStorage(
+            builder.Configuration.GetConnectionString("HangFire"),
+            new MySqlStorageOptions
+            {
+                QueuePollInterval = TimeSpan.FromSeconds(15),
+                JobExpirationCheckInterval = TimeSpan.FromHours(1),
+                CountersAggregateInterval = TimeSpan.FromMinutes(5),
+                PrepareSchemaIfNecessary = true,
+                DashboardJobListLimit = 50000,
+                TransactionTimeout = TimeSpan.FromMinutes(1),
+                TablesPrefix = "Hangfire"
+            }
+        ))
+    );
 
-//    builder.Services.AddHangfireServer();
-//}
+    builder.Services.AddHangfireServer();
+}
 
 // --- 4. DATABASE CONFIGURATION (MySQL) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -198,18 +198,18 @@ builder.Services.AddSignalR();
 
 var app = builder.Build();
 
-
-
-
-if (app.Environment.IsDevelopment())
+// Enable Swagger in all environments
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Healthcare API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// CORS
 if (app.Environment.IsProduction())
 {
     app.UseCors("Production");
@@ -218,24 +218,26 @@ else
 {
     app.UseCors("AllowAll");
 }
-app.UseResponseCaching(); 
 
+app.UseResponseCaching();
 app.UseIpRateLimiting();
 app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-//if (!app.Environment.IsProduction())
-//{
-//    app.UseHangfireDashboard("/Hangfire", new DashboardOptions
-//    {
-//        Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
-//        AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
-//        DashboardTitle = "Healthcare System - Background Jobs"
-//    });
-//    HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
-//}
-//HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
+
+// Hangfire (only in development)
+if (!app.Environment.IsProduction())
+{
+    app.UseHangfireDashboard("/Hangfire", new DashboardOptions
+    {
+        Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
+        AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
+        DashboardTitle = "Healthcare System - Background Jobs"
+    });
+    HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
+}
+
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
 app.Run();
