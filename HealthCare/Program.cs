@@ -78,18 +78,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 // Disable Hangfire for production (Aiven MySQL doesn't support it)
 // Use in-memory Hangfire storage for production
-if (builder.Environment.IsProduction())
+// --- HANGFIRE CONFIGURATION (DISABLED FOR PRODUCTION) ---
+if (!builder.Environment.IsProduction())
 {
-    builder.Services.AddHangfire(configuration => configuration
-        .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
-        .UseSimpleAssemblyNameTypeSerializer()
-        .UseRecommendedSerializerSettings()
-        .UseMemoryStorage() // ✅ Use in-memory storage
-    );
-}
-else
-{
-    // Use MySQL for development
     builder.Services.AddHangfire(configuration => configuration
         .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
         .UseSimpleAssemblyNameTypeSerializer()
@@ -108,9 +99,9 @@ else
             }
         ))
     );
-}
 
-builder.Services.AddHangfireServer();
+    builder.Services.AddHangfireServer();
+}
 
 // --- 4. DATABASE CONFIGURATION (MySQL) ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -234,12 +225,16 @@ app.UseMiddleware<ExceptionMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseHangfireDashboard("/Hangfire", new DashboardOptions
+if (!app.Environment.IsProduction())
 {
-    Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
-    AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
-    DashboardTitle = "Healthcare System - Background Jobs"
-});
+    app.UseHangfireDashboard("/Hangfire", new DashboardOptions
+    {
+        Authorization = Array.Empty<Hangfire.Dashboard.IDashboardAuthorizationFilter>(),
+        AsyncAuthorization = new[] { new HangfirAuthrizationFilter() },
+        DashboardTitle = "Healthcare System - Background Jobs"
+    });
+    HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
+}
 HangfireJobScheduler.ConfigureRecurringJobs(app.Configuration);
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationHub");
