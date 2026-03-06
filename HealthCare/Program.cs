@@ -215,14 +215,34 @@ if (!app.Environment.IsProduction())
 app.UseStaticFiles();
 
 // CORS
-if (app.Environment.IsProduction())
+// --- 9. CORS ---
+builder.Services.AddCors(options =>
 {
-    app.UseCors("Production");
-}
-else
-{
-    app.UseCors("AllowAll");
-}
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
+
+    options.AddPolicy("Production", policy =>
+    {
+        var origins = builder.Configuration.GetSection("CorsSettings:AllowedOrigins").Get<string[]>();
+
+        if (origins != null && origins.Length > 0)
+        {
+            policy.WithOrigins(origins) // Specific origins (Vercel URL)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials(); // Sirf specific origins ke sath chalta hai
+        }
+        else
+        {
+            // Agar origins missing hain to wildcard use karein lekin Credentials hata dein
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
+    });
+});
 
 app.UseResponseCaching();
 app.UseIpRateLimiting();
